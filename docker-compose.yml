@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: equity_postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: equity_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: equity_fastapi_web
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgrespassword@db:5432/equity_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-mock_openai_api_key_for_testing}
+      - NEWS_API_KEY=${NEWS_API_KEY:-mock_news_api_key_for_testing}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY:-mock_finnhub_api_key_for_testing}
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-investor@gmail.com}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-mockpassword}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-investor@gmail.com}
+      - ALERT_RECEIVER_EMAIL=${ALERT_RECEIVER_EMAIL:-investor@gmail.com}
+      - INVESTMENT_START_DATE=${INVESTMENT_START_DATE:-2026-07-13}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
